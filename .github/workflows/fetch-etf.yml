@@ -1,33 +1,46 @@
-name: Fetch and Save ETF Data
+name: Generate and Commit ETF CSV
 
 on:
   schedule:
-    - cron: "0 12 * * *"  # every hour
-  workflow_dispatch:
+    - cron: '30 12 * * 1-5'  # Runs daily at 12:30 PM UTC (6:00 PM IST) exculding Sunday & Saturday
+  workflow_dispatch:  # Allows manual trigger
 
 jobs:
-  fetch-and-save:
-    runs-on: ubuntu-latest
+  generate_csv:
+    runs-on: self-hosted
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.11
+    - name: Confirm Python version available on runner
+      run: |
+        which python3
+        python3 --version
+  
+    - name: Set up Python virtual environment and install dependencies
+      run: |
+        python3 -m venv venv
+        source venv/bin/activate
+        python3 -m pip install --upgrade pip
+        pip3 install requests undetected-chromedriver selenium
 
-      - name: Install dependencies
-        run: pip install requests
 
-      - name: Run fetch script
-        run: python fetch_etf.py
+    - name: Run ETF CSV generation script
+      run: |
+        source venv/bin/activate
+        python3 ETF_Extract/NSE_ETF_Daily_Downloader.py  # Trigger the python file
+        continue-on-error: true
+      
+    - name: Move the file 
+      run: | 
+        mv ETF_data_*.csv ETF_Data/Download/               #move the file to download folder in the repo
+        continue-on-error: true
 
-      - name: Commit and push if changed
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add *
-          git diff --cached --quiet || git commit -m "Update ETF data"
-          git push
+    - name: Commit CSV file
+      run: |
+        git config --local user.email "actions@github.com"
+        git config --local user.name "GitHub Actions"
+        git add ETF_Data/Download/ETF_data_*.csv   #Add to the csv to Download folder
+        git commit -m "Automated ETF CSV upload on daily basis"
+        git push
