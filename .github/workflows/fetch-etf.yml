@@ -1,0 +1,32 @@
+name: Fetch NSE ETF JSON
+
+on:
+  schedule:
+    - cron: '0 5,13 * * *'  # twice daily at 10:30 AM & 6:30 PM IST
+  workflow_dispatch:
+
+jobs:
+  fetch-etf-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Fetch ETF Data
+        run: |
+          python fetch_etf.py
+
+      - name: Commit & Push
+        run: |
+          git config --global user.email "github-actions@users.noreply.github.com"
+          git config --global user.name "GitHub Actions"
+          git add etf-data.json
+          git commit -m "Update ETF data [auto]" || echo "No changes"
+          git push
