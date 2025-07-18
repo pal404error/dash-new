@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NSE ETF Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: #0e1117;
+      color: #e6edf3;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .dashboard {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .card {
+      background: #161b22;
+      padding: 16px;
+      border-radius: 12px;
+      flex: 1 1 180px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    .card h2 {
+      font-size: 1.25rem;
+      margin-bottom: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #30363d;
+      text-align: left;
+    }
+    th {
+      background-color: #21262d;
+    }
+    tr:hover {
+      background-color: #1c2128;
+    }
+    .search-box {
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    .search-box input {
+      padding: 8px 12px;
+      width: 60%;
+      border-radius: 6px;
+      border: 1px solid #555;
+      background: #0e1117;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <h1>NSE ETF Dashboard</h1>
+  <div class="dashboard">
+    <div class="stats">
+      <div class="card">
+        <h2>Total ETFs</h2>
+        <div id="totalETFs">0</div>
+      </div>
+      <div class="card">
+        <h2>Unique Issuers</h2>
+        <div id="uniqueIssuers">0</div>
+      </div>
+      <div class="card">
+        <h2>Categories</h2>
+        <div id="categoryCount">0</div>
+      </div>
+    </div>
+
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Search ETF name or symbol...">
+    </div>
+
+    <table id="etfTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Symbol</th>
+          <th>Category</th>
+          <th>Issuer</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    fetch("etf-data.json")
+      .then(res => res.json())
+      .then(data => {
+        const tableBody = document.querySelector("#etfTable tbody");
+        const totalEl = document.getElementById("totalETFs");
+        const issuerEl = document.getElementById("uniqueIssuers");
+        const catEl = document.getElementById("categoryCount");
+
+        const etfs = data.data;
+        const issuers = new Set();
+        const categories = new Set();
+
+        const renderTable = (list) => {
+          tableBody.innerHTML = list.map(row => `
+            <tr>
+              <td>${row.name}</td>
+              <td>${row.symbol || "-"}</td>
+              <td>${row.category || "-"}</td>
+              <td>${row.issuer || "-"}</td>
+            </tr>
+          `).join("");
+        }
+
+        renderTable(etfs);
+
+        etfs.forEach(row => {
+          if (row.issuer) issuers.add(row.issuer);
+          if (row.category) categories.add(row.category);
+        });
+
+        totalEl.textContent = etfs.length;
+        issuerEl.textContent = issuers.size;
+        catEl.textContent = categories.size;
+
+        document.getElementById("searchInput").addEventListener("input", e => {
+          const val = e.target.value.toLowerCase();
+          const filtered = etfs.filter(row =>
+            row.name.toLowerCase().includes(val) ||
+            (row.symbol || "").toLowerCase().includes(val)
+          );
+          renderTable(filtered);
+        });
+      })
+      .catch(err => {
+        document.body.innerHTML = "<h2>Error loading data</h2>";
+        console.error(err);
+      });
+  </script>
+</body>
+</html>
